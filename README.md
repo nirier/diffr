@@ -24,14 +24,17 @@ algorithm.
 
 ### Installation
 
-#### Fork releases (Linux x86_64)
+#### Fork releases (Linux, Windows, macOS)
 
 Download prebuilt binaries from [this fork's GitHub Releases](https://github.com/nirier/diffr/releases).
 Choose `x86_64-unknown-linux-gnu` for glibc systems (built on Ubuntu 22.04,
 requiring glibc 2.35 or newer), or `x86_64-unknown-linux-musl` for a statically
-linked binary that also works on Alpine Linux. Each release includes
+linked binary that also works on Alpine Linux.
+For Windows x86_64, choose `x86_64-pc-windows-msvc` (`.zip`, containing `diffr.exe`).
+For macOS, choose `x86_64-apple-darwin` for Intel or `aarch64-apple-darwin`
+for Apple Silicon (`.tar.gz`). Each release includes
 `SHA256SUMS` to verify the downloaded archives with `sha256sum --check`.
-Extract the archive and place `diffr` in a directory on your `PATH`.
+Extract the archive and place `diffr` (or `diffr.exe`) in a directory on your `PATH`.
 
 The package manager and crates.io instructions below refer to upstream distributions.
 

@@ -1,6 +1,7 @@
 ## 0.1.6 (2026/10/06)
 - Add GitHub Release automation for this fork with Linux x86_64 glibc and
-  statically linked musl binaries, plus SHA256 checksums.
+  statically linked musl binaries, Windows x86_64 binaries, macOS Intel and
+  Apple Silicon binaries, plus SHA256 checksums.
 - Include the existing UTF-8 grapheme tokenization and dimmed text support.
 
 ## 0.1.3 (2020/03/19)

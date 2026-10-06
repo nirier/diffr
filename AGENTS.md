@@ -17,7 +17,7 @@
 - `assets/h.txt`, `assets/help.txt`, and `assets/diffr.1.md`: short help, long help, and manual source. Keep relevant documentation consistent with CLI changes.
 - `README.md` and `CHANGELOG.md`: user documentation and release history.
 - `azure-pipelines.yml` / `ci/`: existing Azure CI for Linux, macOS, and Windows.
-- `.github/workflows/release.yml`: tag-triggered GitHub Releases with tested Linux x86_64 glibc and musl archives and checksums.
+- `.github/workflows/release.yml`: tag-triggered GitHub Releases with tested Linux x86_64 glibc/musl, Windows x86_64 MSVC, macOS Intel/Apple Silicon archives, and checksums. Manual dispatch can add assets to an existing release while preserving published archives.
 
 ## Changes and releases
 
