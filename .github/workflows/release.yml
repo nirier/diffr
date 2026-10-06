@@ -1,6 +1,12 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build and publish
+        required: true
+        type: string
   push:
     tags:
       - 'v[0-9]*'
@@ -9,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -24,10 +30,12 @@ jobs:
           - x86_64-unknown-linux-musl
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Check release version
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           python3 - <<'PY'
           import os
@@ -58,7 +66,9 @@ jobs:
         env:
           DIFFR_TESTS_BINARY_PATH: ${{ github.workspace }}/target/${{ matrix.target }}/release/diffr
         run: |
-          cargo test --locked --release --target '${{ matrix.target }}'
+          # Existing algorithm tests rely on debug assertions; CLI tests
+          # exercise the release binary through DIFFR_TESTS_BINARY_PATH.
+          cargo test --locked --target '${{ matrix.target }}'
           "$DIFFR_TESTS_BINARY_PATH" --version
           if [ '${{ matrix.target }}' = x86_64-unknown-linux-musl ]; then
             if readelf -l "$DIFFR_TESTS_BINARY_PATH" | grep -q INTERP; then
@@ -69,7 +79,7 @@ jobs:
 
       - name: Package
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
           RELEASE_TARGET: ${{ matrix.target }}
         run: |
           archive="diffr-${RELEASE_TAG}-${RELEASE_TARGET}"
@@ -104,7 +114,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" dist/*.tar.gz dist/SHA256SUMS \
             --verify-tag --title "diffr $RELEASE_TAG" --generate-notes
