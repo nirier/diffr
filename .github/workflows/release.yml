@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          manifest = Path('Cargo.toml').read_text()
+          version = re.search(r'^version = "([^"]+)"$', manifest, re.MULTILINE).group(1)
+          if os.environ['RELEASE_TAG'] != f'v{version}':
+              raise SystemExit('Release tag must match the Cargo.toml version')
+          PY
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add '${{ matrix.target }}'
+
+      - name: Install musl compiler
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
+
+      - name: Build
+        run: cargo build --locked --release --target '${{ matrix.target }}'
+
+      - name: Test release binary and algorithms
+        env:
+          DIFFR_TESTS_BINARY_PATH: ${{ github.workspace }}/target/${{ matrix.target }}/release/diffr
+        run: |
+          cargo test --locked --release --target '${{ matrix.target }}'
+          "$DIFFR_TESTS_BINARY_PATH" --version
+          if [ '${{ matrix.target }}' = x86_64-unknown-linux-musl ]; then
+            if readelf -l "$DIFFR_TESTS_BINARY_PATH" | grep -q INTERP; then
+              echo 'musl binary must be statically linked' >&2
+              exit 1
+            fi
+          fi
+
+      - name: Package
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          archive="diffr-${RELEASE_TAG}-${RELEASE_TARGET}"
+          mkdir -p "dist/$archive"
+          cp "target/$RELEASE_TARGET/release/diffr" README.md LICENSE.txt CHANGELOG.md assets/diffr.1.md "dist/$archive/"
+          tar -C dist -czf "dist/$archive.tar.gz" "$archive"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diffr-${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: diffr-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum *.tar.gz > SHA256SUMS
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.tar.gz dist/SHA256SUMS \
+            --verify-tag --title "diffr $RELEASE_TAG" --generate-notes

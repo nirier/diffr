@@ -24,6 +24,17 @@ algorithm.
 
 ### Installation
 
+#### Fork releases (Linux x86_64)
+
+Download prebuilt binaries from [this fork's GitHub Releases](https://github.com/nirier/diffr/releases).
+Choose `x86_64-unknown-linux-gnu` for glibc systems (built on Ubuntu 22.04,
+requiring glibc 2.35 or newer), or `x86_64-unknown-linux-musl` for a statically
+linked binary that also works on Alpine Linux. Each release includes
+`SHA256SUMS` to verify the downloaded archives with `sha256sum --check`.
+Extract the archive and place `diffr` in a directory on your `PATH`.
+
+The package manager and crates.io instructions below refer to upstream distributions.
+
 #### Arch Linux
 
 Install from the [AUR](https://aur.archlinux.org/packages/diffr/):
